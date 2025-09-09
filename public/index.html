@@ -357,27 +357,136 @@
             }
         }
         
-        // 結果表示
-        function displayResults(status) {
-            const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = '';
-            
-            if (status.status === 'error') {
-                resultsDiv.innerHTML = `
-                    <div class="error-card">
-                        <h3>❌ 分析エラー</h3>
-                        <p>${status.error}</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            status.results.forEach((result, index) => {
-                const resultCard = createResultCard(result, index + 1);
-                resultsDiv.appendChild(resultCard);
-            });
-        }
+ // 結果表示関数を修正
+// 結果カード作成関数を修正
+function createResultCard(result, index) {
+    const div = document.createElement('div');
+    div.className = 'result-card';
+    
+    if (result.error) {
+        div.innerHTML = `
+            <div class="result-url">🌐 ${result.url}</div>
+            <div class="error-card">
+                <p>❌ 分析エラー: ${result.error}</p>
+            </div>
+        `;
+        return div;
+    }
+    
+    const scores = result.scores;
+    
+    div.innerHTML = `
+        <div class="result-url">🌐 ${result.url}</div>
         
+        <div class="scores-grid">
+            <div class="score-item">
+                <div class="score-value">${scores.performance}/5</div>
+                <div class="score-label">🚀 パフォーマンス</div>
+            </div>
+            <div class="score-item">
+                <div class="score-value">${scores.seo}/5</div>
+                <div class="score-label">🔍 SEO</div>
+            </div>
+            <div class="score-item">
+                <div class="score-value">${scores.mobile}/5</div>
+                <div class="score-label">📱 モバイル</div>
+            </div>
+            <div class="score-item">
+                <div class="score-value">${scores.accessibility}/5</div>
+                <div class="score-label">♿ アクセシビリティ</div>
+            </div>
+            <div class="score-item">
+                <div class="score-value">${scores.b2bLead}/5</div>
+                <div class="score-label">🏢 B2B</div>
+            </div>
+            <div class="score-item" style="grid-column: span 2;">
+                <div class="score-value" style="color: #059669;">${scores.overall}/25</div>
+                <div class="score-label">📊 総合スコア</div>
+            </div>
+        </div>
+        
+        ${result.reportFile ? `
+            <div style="margin-top: 1rem; padding: 1rem; background: #f0f9ff; border-radius: 8px; text-align: center;">
+                <a href="${result.reportFile}" target="_blank" style="
+                    display: inline-block;
+                    padding: 0.75rem 1.5rem;
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 6px;
+                    font-weight: 600;
+                    margin: 0.25rem;
+                ">📄 詳細レポートを表示</a>
+                
+                <a href="${result.reportFile}" download style="
+                    display: inline-block;
+                    padding: 0.75rem 1.5rem;
+                    background: #e5e7eb;
+                    color: #374151;
+                    text-decoration: none;
+                    border-radius: 6px;
+                    font-weight: 600;
+                    margin: 0.25rem;
+                ">⬇️ ダウンロード</a>
+            </div>
+        ` : ''}
+        
+        ${result.suggestions ? `
+            <details style="margin-top: 1rem;">
+                <summary style="cursor: pointer; font-weight: 600; color: #4f46e5;">
+                    🤖 AI改善提案を表示
+                </summary>
+                <div style="margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px; white-space: pre-wrap;">${result.suggestions}</div>
+            </details>
+        ` : ''}
+    `;
+    
+    return div;
+}
+
+// 結果表示関数も修正して、分析完了時にレポート一覧へのリンクを追加
+function displayResults(status) {
+    const resultsDiv = document.getElementById('results');
+    resultsDiv.innerHTML = '';
+    
+    if (status.status === 'error') {
+        resultsDiv.innerHTML = `
+            <div class="error-card">
+                <h3>❌ 分析エラー</h3>
+                <p>${status.error}</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // レポート一覧へのリンクボタンを追加
+    resultsDiv.innerHTML = `
+        <div style="
+            text-align: center; 
+            margin-bottom: 2rem; 
+            padding: 1.5rem; 
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe); 
+            border-radius: 12px;
+        ">
+            <h2 style="color: #1e40af; margin-bottom: 1rem;">✅ 分析完了！</h2>
+            <a href="/reports" target="_blank" style="
+                display: inline-block;
+                padding: 1rem 2rem;
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                text-decoration: none;
+                border-radius: 8px;
+                font-size: 1.1rem;
+                font-weight: 600;
+            ">📂 全レポート一覧を見る</a>
+        </div>
+    `;
+    
+    status.results.forEach((result, index) => {
+        const resultCard = createResultCard(result, index + 1);
+        resultsDiv.appendChild(resultCard);
+    });
+}    
         // 結果カード作成
         function createResultCard(result, index) {
             const div = document.createElement('div');

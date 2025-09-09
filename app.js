@@ -7,9 +7,16 @@ import { runAxeAnalysis } from './src/axe-integration.js';
 import { getUXImprovementSuggestions } from './src/improvePrompts.js';
 import { generateHTMLReport } from './src/generateHTMLReport-integrated.js';
 import { openai } from './src/config.js';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const reportsDir = path.join(__dirname, 'reports');
+
+// 'reports' ディレクトリが存在しない場合は作成
+if (!fs.existsSync(reportsDir)) {
+  fs.mkdirSync(reportsDir, { recursive: true });
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -173,9 +180,6 @@ async function releaseBrowser(browser, shouldClose = false) {
   }
 }
 
-// HTML要素のカウント
-        const formCount = (html.match(/<form/gi) || []).length;
-        const buttonCount = (html.match(/<button/gi) || []).length;
 
 // 分析実行関数
 async function runAnalysis(sessionId, urls) {
@@ -445,4 +449,497 @@ function calculateScores(performance, seo, mobile, a11yViolations, b2bScore) {
 app.listen(PORT, () => {
   console.log(`🚀 Web分析サーバーが起動しました: http://localhost:${PORT}`);
   console.log(`🔑 OpenAI API: ${openai ? '設定済み' : '未設定（基本分析のみ）'}`);
+});
+
+// app.js への追加コード
+
+// レポート一覧ページのルート
+app.get('/reports', (req, res) => {
+  const reportFiles = fs.readdirSync(reportsDir)
+    .filter(file => file.endsWith('.html'))
+    .sort((a, b) => {
+      // ファイル作成時刻で新しい順にソート
+      const statA = fs.statSync(path.join(reportsDir, a));
+      const statB = fs.statSync(path.join(reportsDir, b));
+      return statB.mtime - statA.mtime;
+    });
+
+  const html = `
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 分析レポート一覧</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .report-grid {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .report-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .report-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            background: #f0f9ff;
+        }
+        
+        .report-info {
+            flex: 1;
+        }
+        
+        .report-name {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .report-meta {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+        
+        .report-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .btn-view {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-view:hover {
+            transform: scale(1.05);
+        }
+        
+        .btn-download {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        .btn-download:hover {
+            background: #d1d5db;
+        }
+        
+        .btn-delete {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .btn-delete:hover {
+            background: #fecaca;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+        
+        .nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .nav-link {
+            padding: 0.5rem 1rem;
+            background: #f3f4f6;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #374151;
+            transition: background 0.2s;
+        }
+        
+        .nav-link:hover {
+            background: #e5e7eb;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-bar">
+            <h1>📊 分析レポート一覧</h1>
+            <div class="nav-links">
+                <a href="/" class="nav-link">🏠 ホーム</a>
+                <a href="/" class="nav-link">🔍 新規分析</a>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value">${reportFiles.length}</div>
+                <div class="stat-label">総レポート数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">${new Set(reportFiles.map(f => f.split('-')[1])).size}</div>
+                <div class="stat-label">分析セッション数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">${reportFiles.length > 0 ? new Date(fs.statSync(path.join(reportsDir, reportFiles[0])).mtime).toLocaleDateString('ja-JP') : '-'}</div>
+                <div class="stat-label">最終更新日</div>
+            </div>
+        </div>
+        
+        ${reportFiles.length === 0 ? `
+            <div class="empty-state">
+                <h2>📭 レポートがありません</h2>
+                <p>分析を実行するとここにレポートが表示されます</p>
+                <a href="/" class="btn btn-view" style="margin-top: 1rem;">🔍 分析を開始</a>
+            </div>
+        ` : `
+            <div class="report-grid">
+                ${reportFiles.map(file => {
+                    const stat = fs.statSync(path.join(reportsDir, file));
+                    const sessionId = file.split('-')[1];
+                    const reportNum = file.split('-')[2].replace('.html', '');
+                    
+                    return `
+                        <div class="report-card">
+                            <div class="report-info">
+                                <div class="report-name">
+                                    📄 レポート #${reportNum} 
+                                    <span style="color: #9ca3af; font-size: 0.9rem;">(セッション: ${sessionId})</span>
+                                </div>
+                                <div class="report-meta">
+                                    📅 ${new Date(stat.mtime).toLocaleString('ja-JP')}
+                                    | 📦 ${Math.round(stat.size / 1024)} KB
+                                </div>
+                            </div>
+                            <div class="report-actions">
+                                <a href="/reports/${file}" target="_blank" class="btn btn-view">
+                                    👁️ 表示
+                                </a>
+                                <a href="/reports/${file}" download="${file}" class="btn btn-download">
+                                    ⬇️ ダウンロード
+                                </a>
+                                <button onclick="deleteReport('${file}')" class="btn btn-delete">
+                                    🗑️ 削除
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `}
+    </div>
+    
+    <script>
+        async function deleteReport(fileName) {
+            if (!confirm('このレポートを削除してもよろしいですか？')) return;
+            
+            try {
+                const response = await fetch('/api/reports/' + fileName, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert('削除に失敗しました');
+                }
+            } catch (error) {
+                alert('エラーが発生しました: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
+  `;
+
+  res.send(html);
+});
+
+// レポート削除API
+app.delete('/api/reports/:fileName', (req, res) => {
+  const { fileName } = req.params;
+  const filePath = path.join(reportsDir, fileName);
+  
+  // セキュリティチェック（ディレクトリトラバーサル対策）
+  if (!fileName.match(/^report-\d+-\d+\.html$/)) {
+    return res.status(400).json({ error: '無効なファイル名です' });
+  }
+  
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      res.json({ message: 'レポートを削除しました' });
+    } else {
+      res.status(404).json({ error: 'ファイルが見つかりません' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: '削除に失敗しました' });
+  }
+});
+
+// app.js の既存コードの後に以下を追加
+
+// レポート一覧ページのルート
+app.get('/reports', (req, res) => {
+  const reportFiles = fs.readdirSync(reportsDir)
+    .filter(file => file.endsWith('.html'))
+    .sort((a, b) => {
+      // ファイル作成時刻で新しい順にソート
+      const statA = fs.statSync(path.join(reportsDir, a));
+      const statB = fs.statSync(path.join(reportsDir, b));
+      return statB.mtime - statA.mtime;
+    });
+
+  const html = `
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 分析レポート一覧</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 2rem;
+        }
+        
+        .report-list {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .report-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: transform 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .report-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .report-info {
+            flex: 1;
+        }
+        
+        .report-name {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .report-meta {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+        
+        .report-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .btn-view {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-download {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+        
+        .nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .back-link {
+            padding: 0.5rem 1rem;
+            background: #f3f4f6;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #374151;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-bar">
+            <h1>📊 分析レポート一覧</h1>
+            <a href="/" class="back-link">🏠 ホームに戻る</a>
+        </div>
+        
+        ${reportFiles.length === 0 ? `
+            <div class="empty-state">
+                <h2>📭 レポートがありません</h2>
+                <p>分析を実行するとここにレポートが表示されます</p>
+                <a href="/" class="btn btn-view" style="margin-top: 1rem;">🔍 分析を開始</a>
+            </div>
+        ` : `
+            <div class="report-list">
+                ${reportFiles.map(file => {
+                    const stat = fs.statSync(path.join(reportsDir, file));
+                    const sessionId = file.split('-')[1];
+                    const reportNum = file.split('-')[2].replace('.html', '');
+                    
+                    return `
+                        <div class="report-card">
+                            <div class="report-info">
+                                <div class="report-name">
+                                    📄 レポート #${reportNum} 
+                                    <span style="color: #9ca3af; font-size: 0.9rem;">(セッション: ${sessionId})</span>
+                                </div>
+                                <div class="report-meta">
+                                    📅 ${new Date(stat.mtime).toLocaleString('ja-JP')}
+                                    | 📦 ${Math.round(stat.size / 1024)} KB
+                                </div>
+                            </div>
+                            <div class="report-actions">
+                                <a href="/reports/${file}" target="_blank" class="btn btn-view">
+                                    👁️ 表示
+                                </a>
+                                <a href="/reports/${file}" download="${file}" class="btn btn-download">
+                                    ⬇️ ダウンロード
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `}
+    </div>
+</body>
+</html>
+  `;
+
+  res.send(html);
 });
