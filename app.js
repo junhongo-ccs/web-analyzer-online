@@ -463,26 +463,7 @@ function calculateScores(performance, seo, mobile, a11yViolations, b2bScore) {
     overall: Math.max(1, perfScore) + Math.max(1, seoScore) + mobileScore + a11yScore + (b2bScore || 3)
   };
 }
-
-// app.js への追加コード
-
-// レポート一覧ページのルート
-app.get('/reports', (req, res) => {
-  // 分析が実行中かどうかをチェック
-  if (globalAnalysisStatus && globalAnalysisStatus.isAnalyzing) {
-    return res.redirect('/analyzing');  // 分析状況ページへリダイレクト
-  }
-
-  // レポートの存在チェック
-  const reportFiles = fs.readdirSync(reportsDir)
-    .filter(file => file.endsWith('.html'));
-  
-  // レポートが1つもない場合はトップページへリダイレクト
-  if (reportFiles.length === 0) {
-    return res.redirect('/');
-  }
-
-  // レポートが存在する場合は日付順にソート
+  // サーバー起動
   reportFiles.sort((a, b) => {
       // ファイル作成時刻で新しい順にソート
       const statA = fs.statSync(path.join(reportsDir, a));
@@ -702,88 +683,7 @@ app.get('/reports', (req, res) => {
             </div>
         ` : `
             <div class="report-grid">
-                ${reportFiles.map(file => {
-                    const stat = fs.statSync(path.join(reportsDir, file));
-                    const sessionId = file.split('-')[1];
-                    const reportNum = file.split('-')[2].replace('.html', '');
-                    
-                    return `
-                        <div class="report-card">
-                            <div class="report-info">
-                                <div class="report-name">
-                                    📄 レポート #${reportNum} 
-                                    <span style="color: #9ca3af; font-size: 0.9rem;">(セッション: ${sessionId})</span>
-                                </div>
-                                <div class="report-meta">
-                                    📅 ${new Date(stat.mtime).toLocaleString('ja-JP')}
-                                    | 📦 ${Math.round(stat.size / 1024)} KB
-                                </div>
-                            </div>
-                            <div class="report-actions">
-                                <a href="/reports/${file}" target="_blank" class="btn btn-view">
-                                    👁️ 表示
-                                </a>
-                                <a href="/reports/${file}" download="${file}" class="btn btn-download">
-                                    ⬇️ ダウンロード
-                                </a>
-                                <button onclick="deleteReport('${file}')" class="btn btn-delete">
-                                    🗑️ 削除
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        `}
-    </div>
-    
-    <script>
-        async function deleteReport(fileName) {
-            if (!confirm('このレポートを削除してもよろしいですか？')) return;
-            
-            try {
-                const response = await fetch('/api/reports/' + fileName, {
-                    method: 'DELETE'
-                });
-                
-                if (response.ok) {
-                    location.reload();
-                } else {
-                    alert('削除に失敗しました');
-                }
-            } catch (error) {
-                alert('エラーが発生しました: ' + error.message);
-            }
-        }
-    </script>
-</body>
-</html>
-  `;
 
-  res.send(html);
-});
-
-// レポート削除API
-app.delete('/api/reports/:fileName', (req, res) => {
-  const { fileName } = req.params;
-  const filePath = path.join(reportsDir, fileName);
-  
-  // セキュリティチェック（ディレクトリトラバーサル対策）
-  if (!fileName.match(/^report-\d+-\d+\.html$/)) {
-    return res.status(400).json({ error: '無効なファイル名です' });
-  }
-  
-  try {
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      res.json({ message: 'レポートを削除しました' });
-    } else {
-      res.status(404).json({ error: 'ファイルが見つかりません' });
-    }
-  } catch (error) {
-    res.status(500).json({ error: '削除に失敗しました' });
-  }
-});
 
 app.listen(PORT, () => {
   console.log(`🚀 Web分析サーバーが起動しました: http://localhost:${PORT}`);
