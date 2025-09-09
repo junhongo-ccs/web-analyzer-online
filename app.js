@@ -173,6 +173,10 @@ async function releaseBrowser(browser, shouldClose = false) {
   }
 }
 
+// HTML要素のカウント
+        const formCount = (html.match(/<form/gi) || []).length;
+        const buttonCount = (html.match(/<button/gi) || []).length;
+
 // 分析実行関数
 async function runAnalysis(sessionId, urls) {
   const session = analysisStatus.get(sessionId);
@@ -217,11 +221,31 @@ async function runAnalysis(sessionId, urls) {
         const scores = calculateScores(performance, seo, mobile, axeResults.violations?.length || 0, b2bAnalysis.score);
 
         // AI改善提案
-        const gptSuggestions = await getUXImprovementSuggestions({
-          title: `サイト分析 ${i + 1}`,
-          analysisData: { performance, seo, mobile, scores, url },
-          url
-        });
+     let gptSuggestions = null;
+        try {
+          gptSuggestions = await getUXImprovementSuggestions({
+            title: `サイト分析 ${i + 1}`,
+            analysisData: { 
+              performance: performance || {},
+              seo: seo || {},
+              mobile: mobile || {},
+              accessibility: {
+                count: axeResults?.violations?.length || 0,
+                summary: axeResults?.summary || '分析完了',
+                violations: axeResults?.violations || []
+              },
+              b2b: b2bAnalysis || {},
+              scores: scores || {},
+              url: url,
+              formCount: formCount,
+              buttonCount: buttonCount
+            },
+            url
+          });
+        } catch (suggestionError) {
+          console.log('⚠️ AI提案生成エラー:', suggestionError.message);
+          gptSuggestions = null;
+        }
 
         const result = {
           url,
