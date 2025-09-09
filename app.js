@@ -118,11 +118,6 @@ app.get('/api/status/health', (req, res) => {
   });
 });
 
-// ヘルスチェック用エンドポイント
-app.get('/api/status/health', (req, res) => {
-  res.json({ status: 'OK', message: 'サーバーは正常に稼働中です' });
-});
-
 // 分析状況確認API  
 app.get('/api/status/:sessionId', (req, res) => {
   const { sessionId } = req.params;
@@ -281,6 +276,29 @@ async function runAnalysis(sessionId, urls) {
 
     session.status = 'completed';
     session.progress = urls.length;
+
+    // 分析結果ごとにHTMLレポートを生成
+    for (const result of session.results) {
+      if (!result.error) {  // エラーがない結果のみレポート生成
+        try {
+          const timestamp = new Date().getTime();
+          const outputFile = path.join(reportsDir, `report-${timestamp}.html`);
+          
+          await generateHTMLReport({
+            title: `Webサイト分析レポート: ${result.url}`,
+            url: result.url,
+            scoreData: result.scores,
+            analysisData: result,
+            outputFile
+          });
+          
+          console.log(`📝 レポート生成完了: ${outputFile}`);
+        } catch (reportError) {
+          console.error(`⚠️ レポート生成エラー:`, reportError);
+        }
+      }
+    }
+
     console.log(`🎉 全ての分析が完了しました (${urls.length}件)`);
 
   } catch (error) {
@@ -446,19 +464,26 @@ function calculateScores(performance, seo, mobile, a11yViolations, b2bScore) {
   };
 }
 
-app.listen(PORT, () => {
-  console.log(`🚀 Web分析サーバーが起動しました: http://localhost:${PORT}`);
-  console.log(`🔑 OpenAI API: ${openai ? '設定済み' : '未設定（基本分析のみ）'}`);
-});
-<<<<<<< HEAD
-
 // app.js への追加コード
 
 // レポート一覧ページのルート
 app.get('/reports', (req, res) => {
+  // 分析が実行中かどうかをチェック
+  if (globalAnalysisStatus && globalAnalysisStatus.isAnalyzing) {
+    return res.redirect('/analyzing');  // 分析状況ページへリダイレクト
+  }
+
+  // レポートの存在チェック
   const reportFiles = fs.readdirSync(reportsDir)
-    .filter(file => file.endsWith('.html'))
-    .sort((a, b) => {
+    .filter(file => file.endsWith('.html'));
+  
+  // レポートが1つもない場合はトップページへリダイレクト
+  if (reportFiles.length === 0) {
+    return res.redirect('/');
+  }
+
+  // レポートが存在する場合は日付順にソート
+  reportFiles.sort((a, b) => {
       // ファイル作成時刻で新しい順にソート
       const statA = fs.statSync(path.join(reportsDir, a));
       const statB = fs.statSync(path.join(reportsDir, b));
@@ -760,189 +785,7 @@ app.delete('/api/reports/:fileName', (req, res) => {
   }
 });
 
-// app.js の既存コードの後に以下を追加
-
-// レポート一覧ページのルート
-app.get('/reports', (req, res) => {
-  const reportFiles = fs.readdirSync(reportsDir)
-    .filter(file => file.endsWith('.html'))
-    .sort((a, b) => {
-      // ファイル作成時刻で新しい順にソート
-      const statA = fs.statSync(path.join(reportsDir, a));
-      const statB = fs.statSync(path.join(reportsDir, b));
-      return statB.mtime - statA.mtime;
-    });
-
-  const html = `
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📊 分析レポート一覧</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 2rem;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            padding: 2rem;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-        }
-        
-        h1 {
-            color: #333;
-            margin-bottom: 2rem;
-        }
-        
-        .report-list {
-            display: grid;
-            gap: 1rem;
-        }
-        
-        .report-card {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 1.5rem;
-            transition: transform 0.2s;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .report-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        
-        .report-info {
-            flex: 1;
-        }
-        
-        .report-name {
-            font-weight: 600;
-            color: #1f2937;
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        .report-meta {
-            color: #6b7280;
-            font-size: 0.9rem;
-        }
-        
-        .report-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-        
-        .btn {
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-        
-        .btn-view {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-        }
-        
-        .btn-download {
-            background: #e5e7eb;
-            color: #374151;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: #6b7280;
-        }
-        
-        .nav-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid #e5e7eb;
-        }
-        
-        .back-link {
-            padding: 0.5rem 1rem;
-            background: #f3f4f6;
-            border-radius: 6px;
-            text-decoration: none;
-            color: #374151;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="nav-bar">
-            <h1>📊 分析レポート一覧</h1>
-            <a href="/" class="back-link">🏠 ホームに戻る</a>
-        </div>
-        
-        ${reportFiles.length === 0 ? `
-            <div class="empty-state">
-                <h2>📭 レポートがありません</h2>
-                <p>分析を実行するとここにレポートが表示されます</p>
-                <a href="/" class="btn btn-view" style="margin-top: 1rem;">🔍 分析を開始</a>
-            </div>
-        ` : `
-            <div class="report-list">
-                ${reportFiles.map(file => {
-                    const stat = fs.statSync(path.join(reportsDir, file));
-                    const sessionId = file.split('-')[1];
-                    const reportNum = file.split('-')[2].replace('.html', '');
-                    
-                    return `
-                        <div class="report-card">
-                            <div class="report-info">
-                                <div class="report-name">
-                                    📄 レポート #${reportNum} 
-                                    <span style="color: #9ca3af; font-size: 0.9rem;">(セッション: ${sessionId})</span>
-                                </div>
-                                <div class="report-meta">
-                                    📅 ${new Date(stat.mtime).toLocaleString('ja-JP')}
-                                    | 📦 ${Math.round(stat.size / 1024)} KB
-                                </div>
-                            </div>
-                            <div class="report-actions">
-                                <a href="/reports/${file}" target="_blank" class="btn btn-view">
-                                    👁️ 表示
-                                </a>
-                                <a href="/reports/${file}" download="${file}" class="btn btn-download">
-                                    ⬇️ ダウンロード
-                                </a>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        `}
-    </div>
-</body>
-</html>
-  `;
-
-  res.send(html);
+app.listen(PORT, () => {
+  console.log(`🚀 Web分析サーバーが起動しました: http://localhost:${PORT}`);
+  console.log(`🔑 OpenAI API: ${openai ? '設定済み' : '未設定（基本分析のみ）'}`);
 });
-=======
->>>>>>> c43405413ec1c6c516d751e3bf6b75e54c6b7f36
