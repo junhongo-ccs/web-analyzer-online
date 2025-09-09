@@ -1,37 +1,5 @@
 // improvePrompts.js (5項目版・B2B対応・HTML出力・構造修正版)
-import dotenv from 'dotenv';
-import OpenAI from 'openai';
-
-dotenv.config();
-
-// APIキーの確実な取得と検証
-const getCleanAPIKey = () => {
-  let apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null;
-
-  apiKey = apiKey.trim().replace(/[\r\n\t]/g, '');
-
-  if (!apiKey.startsWith('sk-')) {
-    console.error('❌ Invalid API key format');
-    return null;
-  }
-
-  return apiKey;
-};
-
-const apiKey = getCleanAPIKey();
-let openai = null;
-
-if (apiKey) {
-  try {
-    openai = new OpenAI({ apiKey });
-    console.log('✅ OpenAI client initialized successfully');
-  } catch (error) {
-    console.error('❌ OpenAI client initialization failed:', error.message);
-  }
-} else {
-  console.log('⚠️ No valid API key found, using fallback mode');
-}
+import { openai } from './config.js';
 
 async function getUXImprovementSuggestions({ title, analysisData, url }) {
   const { performance, seo, mobile, accessibility, b2b, formCount, buttonCount, scores } = analysisData;

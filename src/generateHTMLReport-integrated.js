@@ -5,15 +5,15 @@ import fs from 'fs';
 function getContrastColor(hexColor) {
   // #を除去
   const hex = hexColor.replace('#', '');
-  
+
   // RGBに変換
   const r = parseInt(hex.substr(0, 2), 16);
   const g = parseInt(hex.substr(2, 2), 16);
   const b = parseInt(hex.substr(4, 2), 16);
-  
+
   // 輝度を計算
   const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-  
+
   // 輝度に基づいて白か黒を返す
   return brightness > 128 ? '#000000' : '#ffffff';
 }
@@ -50,7 +50,7 @@ export async function generateHTMLReport(options) {
   // 🆕 analysisDataから直接HTMLコンテンツを生成する関数
   function generateDirectHTMLContent(analysisData) {
     const { performance, seo, mobile, accessibility, b2b, formCount, buttonCount, scores, gptSuggestions, visual } = analysisData;
-    
+
     return `
     <h1>📊 分析結果詳細</h1>
     
@@ -77,7 +77,7 @@ export async function generateHTMLReport(options) {
     <h2>📱 モバイル対応</h2>
     <p><strong>ビューポート:</strong> ${mobile.viewport ? '対応' : '未対応'}</p>
     <p><strong>レスポンシブ:</strong> ${mobile.responsive.hasMediaQueries ? '対応' : '未対応'}</p>
-    <p><strong>タッチターゲット:</strong> ${mobile.touchTargets.adequateTargets}/${mobile.touchTargets.totalTargets}個が適切</p>
+    <p><strong>タッチターゲット:</strong> ${mobile.touchTargets?.adequateTargets || 0}/${mobile.touchTargets?.totalTargets || 0}個が適切</p>
     
     <h2>♿ アクセシビリティ</h2>
     <p><strong>検出された問題:</strong> ${accessibility.count}件</p>
@@ -124,12 +124,12 @@ export async function generateHTMLReport(options) {
   <h2>🎨 視覚的印象分析</h2>
   <div>
     <h3>色彩分析</h3>
-    <p><strong>主要カラー:</strong> ${visual.primaryColors && visual.primaryColors.length > 0 
-      ? visual.primaryColors.map(color => 
-          `<span style="display: inline-block; background-color: ${color}; color: ${getContrastColor(color)}; padding: 4px 12px; margin: 0 5px; border-radius: 3px; font-weight: bold;">${color}</span>`
-        ).join('')
-      : '色情報なし'
-    }</p>
+    <p><strong>主要カラー:</strong> ${visual.primaryColors && visual.primaryColors.length > 0
+          ? visual.primaryColors.map(color =>
+            `<span style="display: inline-block; background-color: ${color}; color: ${getContrastColor(color)}; padding: 4px 12px; margin: 0 5px; border-radius: 3px; font-weight: bold;">${color}</span>`
+          ).join('')
+          : '色情報なし'
+        }</p>
     <p><strong>配色の印象:</strong> ${visual.colorImpression || '評価なし'}</p>
     
     <h3>デザイン評価</h3>
@@ -143,9 +143,9 @@ export async function generateHTMLReport(options) {
     
     <h3>視覚的改善提案</h3>
     ${visual.suggestions && Array.isArray(visual.suggestions) && visual.suggestions.length > 0
-      ? visual.suggestions.map(suggestion => `<p>・${suggestion}</p>`).join('')
-      : '<p>改善提案はありません</p>'
-    }
+          ? visual.suggestions.map(suggestion => `<p>・${suggestion}</p>`).join('')
+          : '<p>改善提案はありません</p>'
+        }
   </div>
   ` : ''}
 
@@ -155,7 +155,7 @@ export async function generateHTMLReport(options) {
 </div>
     
     <h2>📈 総合評価</h2>
-    <p><strong>総合スコア:</strong> ${scores.overall}/25 (${Math.round((scores.overall/25)*100)}%)</p>
+    <p><strong>総合スコア:</strong> ${scores.overall}/25 (${Math.round((scores.overall / 25) * 100)}%)</p>
     <p>🚀 <strong>パフォーマンス:</strong> ${scores.performance}/5</p>
     <p>🔍 <strong>SEO:</strong> ${scores.seo}/5</p>
     <p>📱 <strong>モバイル対応:</strong> ${scores.mobile}/5</p>
