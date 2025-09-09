@@ -8,14 +8,14 @@ dotenv.config();
 const getCleanAPIKey = () => {
   let apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
-  
+
   apiKey = apiKey.trim().replace(/[\r\n\t]/g, '');
-  
+
   if (!apiKey.startsWith('sk-')) {
     console.error('❌ Invalid API key format');
     return null;
   }
-  
+
   return apiKey;
 };
 
@@ -42,7 +42,7 @@ async function getUXImprovementSuggestions({ title, analysisData, url }) {
 
   // OpenAI APIが使用可能な場合
   if (openai) {
-    const accessibilitySummary = accessibility.count > 0 
+    const accessibilitySummary = accessibility.count > 0
       ? `${accessibility.count}件の問題検出:\n${accessibility.summary}`
       : 'アクセシビリティ違反なし';
 
@@ -78,7 +78,7 @@ URL: ${url}
 📱 モバイル対応分析 (スコア: ${scores.mobile}/5)
 - ビューポート設定: ${mobile.viewport || '未設定'}
 - レスポンシブデザイン: ${mobile.responsive.hasMediaQueries ? 'メディアクエリあり' : 'メディアクエリなし'}
-- タッチターゲット: 総数${mobile.touchTargets.totalTargets}個, 適切なサイズ${mobile.touchTargets.adequateTargets}個, 小さすぎる${mobile.touchTargets.smallTargets}個
+- タッチターゲット: 総数${mobile.touchTargets?.totalTargets || 0}個, 適切なサイズ${mobile.touchTargets?.adequateTargets || 0}個, 小さすぎる${mobile.touchTargets?.smallTargets || 0}個
 
 ♿ アクセシビリティ分析 (スコア: ${scores.accessibility}/5)
 ${accessibilitySummary}
@@ -90,7 +90,7 @@ ${b2bSummary}
 - ボタン数: ${buttonCount}個
 `;
 
- const prompt = `
+    const prompt = `
 あなたは経験豊富なUX/UIデザイナーかつB2Bマーケティングの専門家です。
 以下のウェブサイト分析結果を基に、具体的で実践可能な改善提案を行ってください。
 
@@ -189,7 +189,7 @@ ${analysisReport}
 
   // フォールバック: HTML形式の基本分析版（5項目対応）
   console.log('📋 Using basic analysis (no OpenAI API)');
-  
+
   let suggestions = `<div class="ai-suggestions">
 <h2 style="margin-bottom: 1rem;">🔍 UX分析・改善提案レポート（5項目版）</h2>
 
@@ -206,7 +206,7 @@ ${analysisReport}
     suggestions += `
 <h4 style="margin-bottom: 0.8rem;">🚀 パフォーマンス改善 (現在: ${scores.performance}/5)</h4>
 <ul style="margin-bottom: 1.2rem;">`;
-    
+
     if (performance.loadTime > 3000) {
       suggestions += `<li style="margin-bottom: 0.5rem;"><strong>ページ読み込み速度の最適化</strong> (現在: ${performance.loadTime}ms)
   <ul style="margin-top: 0.3rem;">
@@ -216,7 +216,7 @@ ${analysisReport}
   </ul>
 </li>`;
     }
-    
+
     suggestions += `</ul>`;
   }
 
@@ -224,15 +224,15 @@ ${analysisReport}
   if (scores.seo <= 3) {
     suggestions += `<h4 style="margin-bottom: 0.8rem;">🔍 SEO最適化 (現在: ${scores.seo}/5)</h4>
 <ul style="margin-bottom: 1.2rem;">`;
-    
+
     if (!seo.title) {
       suggestions += `<li style="margin-bottom: 0.5rem;"><strong>タイトルタグの設定</strong> (未設定)</li>`;
     }
-    
+
     if (!seo.metaDescription) {
       suggestions += `<li style="margin-bottom: 0.5rem;"><strong>メタディスクリプションの設定</strong> (未設定)</li>`;
     }
-    
+
     suggestions += `</ul>`;
   }
 
@@ -240,11 +240,11 @@ ${analysisReport}
   if (scores.mobile <= 3) {
     suggestions += `<h4 style="margin-bottom: 0.8rem;">📱 モバイル対応強化 (現在: ${scores.mobile}/5)</h4>
 <ul style="margin-bottom: 1.2rem;">`;
-    
-    if (mobile.touchTargets.smallTargets > 0) {
+
+    if (mobile.touchTargets?.smallTargets > 0) {
       suggestions += `<li style="margin-bottom: 0.5rem;"><strong>タッチターゲットサイズの改善</strong> (${mobile.touchTargets.smallTargets}個が小さすぎる)</li>`;
     }
-    
+
     suggestions += `</ul>`;
   }
 
