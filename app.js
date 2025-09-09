@@ -220,8 +220,8 @@ async function runAnalysis(sessionId, urls) {
         // スコア計算
         const scores = calculateScores(performance, seo, mobile, axeResults.violations?.length || 0, b2bAnalysis.score);
 
-        // AI改善提案
-     let gptSuggestions = null;
+// AI改善提案
+        let gptSuggestions = null;
         try {
           gptSuggestions = await getUXImprovementSuggestions({
             title: `サイト分析 ${i + 1}`,
@@ -237,8 +237,8 @@ async function runAnalysis(sessionId, urls) {
               b2b: b2bAnalysis || {},
               scores: scores || {},
               url: url,
-              formCount: formCount,
-              buttonCount: buttonCount
+              formCount: (html.match(/<form/gi) || []).length,
+              buttonCount: (html.match(/<button/gi) || []).length
             },
             url
           });
