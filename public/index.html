@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web分析システム | オンライン版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 3rem;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .main-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #374151;
+        }
+        
+        .url-input {
+            width: 100%;
+            min-height: 120px;
+            padding: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+        
+        .url-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .analyze-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+        
+        .analyze-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+        
+        .analyze-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .status-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            display: none;
+        }
+        
+        .status-card.show {
+            display: block;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .results-grid {
+            display: grid;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .result-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+        
+        .result-url {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1rem;
+            word-break: break-all;
+        }
+        
+        .scores-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .score-item {
+            text-align: center;
+            padding: 0.75rem;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+        
+        .score-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .score-label {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+        
+        .error-card {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 1rem;
+            color: #dc2626;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .api-status {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .api-status.warning {
+            background: #fffbeb;
+            border-color: #fed7aa;
+            color: #92400e;
+        }
+        
+        .api-status.success {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #166534;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🔍 Web分析システム</h1>
+            <p>日本語サイト専用・5項目評価・AI分析対応</p>
+        </header>
+        
+        <div class="main-card">
+            <div id="api-status" class="api-status">
+                <span class="loading"></span> API状況を確認中...
+            </div>
+            
+            <form id="analysis-form">
+                <div class="form-group">
+                    <label for="urls">分析したいURLを入力してください（1行に1つずつ）</label>
+                    <textarea 
+                        id="urls" 
+                        class="url-input" 
+                        placeholder="https://example.com&#10;https://google.com&#10;https://github.com"
+                        required></textarea>
+                </div>
+                
+                <button type="submit" id="analyze-btn" class="analyze-btn">
+                    📊 分析開始
+                </button>
+            </form>
+            
+            <div id="status-card" class="status-card">
+                <h3 id="status-title">分析中...</h3>
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill"></div>
+                </div>
+                <p id="status-text">準備中...</p>
+            </div>
+        </div>
+        
+        <div id="results" class="results-grid"></div>
+    </div>
+
+    <script>
+        let currentSessionId = null;
+        let statusInterval = null;
+        
+        // API状況チェック
+        checkApiStatus();
+        
+        async function checkApiStatus() {
+            try {
+                const response = await fetch('/api/status/health');
+                const statusEl = document.getElementById('api-status');
+                
+                if (response.ok) {
+                    statusEl.className = 'api-status success';
+                    statusEl.innerHTML = '✅ サーバー正常稼働中（AI分析: 利用可能）';
+                } else {
+                    statusEl.className = 'api-status warning';
+                    statusEl.innerHTML = '⚠️ サーバー稼働中（AI分析: 制限あり）';
+                }
+            } catch (error) {
+                const statusEl = document.getElementById('api-status');
+                statusEl.className = 'api-status warning';
+                statusEl.innerHTML = '⚠️ サーバー接続中...（基本分析のみ利用可能）';
+            }
+        }
+        
+        // フォーム送信
+        document.getElementById('analysis-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const urlsText = document.getElementById('urls').value.trim();
+            if (!urlsText) return;
+            
+            const urls = urlsText.split('\n').map(url => url.trim()).filter(url => url);
+            if (urls.length === 0) return;
+            
+            // UI更新
+            const btn = document.getElementById('analyze-btn');
+            const statusCard = document.getElementById('status-card');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> 分析中...';
+            statusCard.classList.add('show');
+            
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ urls })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentSessionId = data.sessionId;
+                    startStatusCheck();
+                } else {
+                    throw new Error(data.error || '分析開始に失敗しました');
+                }
+                
+            } catch (error) {
+                alert('エラー: ' + error.message);
+                resetUI();
+            }
+        });
+        
+        // 状況チェック開始
+        function startStatusCheck() {
+            if (statusInterval) clearInterval(statusInterval);
+            
+            statusInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/status/${currentSessionId}`);
+                    const status = await response.json();
+                    
+                    updateProgress(status);
+                    
+                    if (status.status === 'completed' || status.status === 'error') {
+                        clearInterval(statusInterval);
+                        displayResults(status);
+                        resetUI();
+                    }
+                } catch (error) {
+                    console.error('Status check error:', error);
+                }
+            }, 1000);
+        }
+        
+        // プログレス更新
+        function updateProgress(status) {
+            const progressFill = document.getElementById('progress-fill');
+            const statusText = document.getElementById('status-text');
+            
+            const progress = (status.progress / status.total) * 100;
+            progressFill.style.width = progress + '%';
+            
+            if (status.currentUrl) {
+                statusText.textContent = `${status.progress + 1}/${status.total}: ${status.currentUrl}`;
+            }
+        }
+        
+        // 結果表示
+        function displayResults(status) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+            
+            if (status.status === 'error') {
+                resultsDiv.innerHTML = `
+                    <div class="error-card">
+                        <h3>❌ 分析エラー</h3>
+                        <p>${status.error}</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            status.results.forEach((result, index) => {
+                const resultCard = createResultCard(result, index + 1);
+                resultsDiv.appendChild(resultCard);
+            });
+        }
+        
+        // 結果カード作成
+        function createResultCard(result, index) {
+            const div = document.createElement('div');
+            div.className = 'result-card';
+            
+            if (result.error) {
+                div.innerHTML = `
+                    <div class="result-url">🌐 ${result.url}</div>
+                    <div class="error-card">
+                        <p>❌ 分析エラー: ${result.error}</p>
+                    </div>
+                `;
+                return div;
+            }
+            
+            const scores = result.scores;
+            
+            div.innerHTML = `
+                <div class="result-url">🌐 ${result.url}</div>
+                
+                <div class="scores-grid">
+                    <div class="score-item">
+                        <div class="score-value">${scores.performance}/5</div>
+                        <div class="score-label">🚀 パフォーマンス</div>
+                    </div>
+                    <div class="score-item">
+                        <div class="score-value">${scores.seo}/5</div>
+                        <div class="score-label">🔍 SEO</div>
+                    </div>
+                    <div class="score-item">
+                        <div class="score-value">${scores.mobile}/5</div>
+                        <div class="score-label">📱 モバイル</div>
+                    </div>
+                    <div class="score-item">
+                        <div class="score-value">${scores.accessibility}/5</div>
+                        <div class="score-label">♿ アクセシビリティ</div>
+                    </div>
+                    <div class="score-item">
+                        <div class="score-value">${scores.b2bLead}/5</div>
+                        <div class="score-label">🏢 B2B</div>
+                    </div>
+                    <div class="score-item" style="grid-column: span 2;">
+                        <div class="score-value" style="color: #059669;">${scores.overall}/25</div>
+                        <div class="score-label">📊 総合スコア</div>
+                    </div>
+                </div>
+                
+                ${result.suggestions ? `
+                    <details style="margin-top: 1rem;">
+                        <summary style="cursor: pointer; font-weight: 600; color: #4f46e5;">
+                            🤖 AI改善提案を表示
+                        </summary>
+                        <div style="margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px; white-space: pre-wrap;">${result.suggestions}</div>
+                    </details>
+                ` : ''}
+            `;
+            
+            return div;
+        }
+        
+        // UI リセット
+        function resetUI() {
+            const btn = document.getElementById('analyze-btn');
+            const statusCard = document.getElementById('status-card');
+            
+            btn.disabled = false;
+            btn.innerHTML = '📊 分析開始';
+            statusCard.classList.remove('show');
+        }
+    </script>
+</body>
+</html>
