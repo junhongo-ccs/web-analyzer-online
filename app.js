@@ -303,46 +303,78 @@ function analyzeSEO(html) {
 }
 
 async function analyzeMobile(page) {
-  const viewport = await page.evaluate(() => {
-    const viewportMeta = document.querySelector('meta[name="viewport"]');
-    return viewportMeta ? viewportMeta.getAttribute('content') : null;
-  });
-
-  const touchTargets = await page.evaluate(() => {
-    const interactiveElements = document.querySelectorAll(
-      'button, a[href], input, select, textarea, [role="button"], [tabindex="0"]'
-    );
-
-    let totalTargets = 0;
-    let adequateTargets = 0;
-    let smallTargets = 0;
-
-    interactiveElements.forEach(element => {
-      const rect = element.getBoundingClientRect();
-      const minSize = 44; // 推奨最小タッチターゲットサイズ (44x44px)
-
-      if (rect.width > 0 && rect.height > 0) {
-        totalTargets++;
-        if (rect.width >= minSize && rect.height >= minSize) {
-          adequateTargets++;
-        } else {
-          smallTargets++;
-        }
-      }
+  try {
+    const viewport = await page.evaluate(() => {
+      const viewportMeta = document.querySelector('meta[name="viewport"]');
+      return viewportMeta ? viewportMeta.getAttribute('content') : null;
     });
 
-    return {
-      totalTargets,
-      adequateTargets,
-      smallTargets
-    };
-  });
+    let touchTargets;
+    try {
+      touchTargets = await page.evaluate(() => {
+        const interactiveElements = document.querySelectorAll(
+          'button, a[href], input, select, textarea, [role="button"], [tabindex="0"]'
+        );
 
-  return {
-    viewport,
-    responsive: { hasMediaQueries: true }, // 簡略化
-    touchTargets
-  };
+        let totalTargets = 0;
+        let adequateTargets = 0;
+        let smallTargets = 0;
+
+        interactiveElements.forEach(element => {
+          try {
+            const rect = element.getBoundingClientRect();
+            const minSize = 44; // 推奨最小タッチターゲットサイズ (44x44px)
+
+            if (rect.width > 0 && rect.height > 0) {
+              totalTargets++;
+              if (rect.width >= minSize && rect.height >= minSize) {
+                adequateTargets++;
+              } else {
+                smallTargets++;
+              }
+            }
+          } catch (e) {
+            // 個別要素のエラーは無視
+            console.warn('Element evaluation error:', e.message);
+          }
+        });
+
+        return {
+          totalTargets,
+          adequateTargets,
+          smallTargets
+        };
+      });
+    } catch (error) {
+      console.warn('TouchTargets evaluation failed:', error.message);
+      touchTargets = {
+        totalTargets: 0,
+        adequateTargets: 0,
+        smallTargets: 0
+      };
+    }
+
+    const result = {
+      viewport,
+      responsive: { hasMediaQueries: true }, // 簡略化
+      touchTargets
+    };
+
+    console.log('Mobile analysis result:', JSON.stringify(result, null, 2));
+    return result;
+
+  } catch (error) {
+    console.error('Mobile analysis error:', error.message);
+    return {
+      viewport: null,
+      responsive: { hasMediaQueries: false },
+      touchTargets: {
+        totalTargets: 0,
+        adequateTargets: 0,
+        smallTargets: 0
+      }
+    };
+  }
 }
 
 async function analyzeB2BWithAI(page) {
