@@ -459,7 +459,7 @@ function displayResults(status) {
         return;
     }
     
-    // レポート一覧へのリンクボタンを追加
+    // 分析完了メッセージを表示
     resultsDiv.innerHTML = `
         <div style="
             text-align: center; 
@@ -468,17 +468,7 @@ function displayResults(status) {
             background: linear-gradient(135deg, #f0f9ff, #e0f2fe); 
             border-radius: 12px;
         ">
-            <h2 style="color: #1e40af; margin-bottom: 1rem;">✅ 分析完了！</h2>
-            <a href="/reports" target="_blank" style="
-                display: inline-block;
-                padding: 1rem 2rem;
-                background: linear-gradient(135deg, #667eea, #764ba2);
-                color: white;
-                text-decoration: none;
-                border-radius: 8px;
-                font-size: 1.1rem;
-                font-weight: 600;
-            ">📂 全レポート一覧を見る</a>
+            <h2 style="color: #1e40af;">✅ 分析完了！</h2>
         </div>
     `;
     
