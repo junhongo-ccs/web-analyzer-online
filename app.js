@@ -3,6 +3,9 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { chromium } from 'playwright';
+// 🔽 --- ここから修正 --- 🔽
+import fs from 'fs'; // ファイルシステムモジュールをインポート
+// 🔼 --- ここまで修正 --- 🔼
 import { runAxeAnalysis } from './src/axe-integration.js';
 import { getUXImprovementSuggestions } from './src/improvePrompts.js';
 import { generateHTMLReport } from './src/generateHTMLReport-integrated.js';
@@ -450,6 +453,7 @@ app.listen(PORT, () => {
   console.log(`🚀 Web分析サーバーが起動しました: http://localhost:${PORT}`);
   console.log(`🔑 OpenAI API: ${openai ? '設定済み' : '未設定（基本分析のみ）'}`);
 });
+<<<<<<< HEAD
 
 // app.js への追加コード
 
@@ -943,3 +947,5 @@ app.get('/reports', (req, res) => {
 
   res.send(html);
 });
+=======
+>>>>>>> c43405413ec1c6c516d751e3bf6b75e54c6b7f36
