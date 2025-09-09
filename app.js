@@ -3,9 +3,6 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { chromium } from 'playwright';
-// 🔽 --- ここから修正 --- 🔽
-import fs from 'fs'; // ファイルシステムモジュールをインポート
-// 🔼 --- ここまで修正 --- 🔼
 import { runAxeAnalysis } from './src/axe-integration.js';
 import { getUXImprovementSuggestions } from './src/improvePrompts.js';
 import { generateHTMLReport } from './src/generateHTMLReport-integrated.js';
