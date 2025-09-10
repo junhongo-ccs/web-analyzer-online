@@ -8,7 +8,8 @@
     "start": "node app.js",
     "dev": "node --watch app.js",
     "analyze": "node src/analyze-all.js",
-    "build": "mkdir -p dist && cp -r public/* dist/ && cp app.js dist/"
+    "build": "mkdir -p dist && cp -r public/* dist/ && cp app.js dist/",
+    "postinstall": "npx playwright install --with-deps"
   },
   "dependencies": {
     "express": "^4.18.2",
