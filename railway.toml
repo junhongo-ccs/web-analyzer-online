@@ -1,0 +1,24 @@
+[build]
+builder = "NIXPACKS"
+
+[nix]
+pkgs = [
+  "glib",
+  "gtk3",
+  "cairo",
+  "gdk-pixbuf",
+  "libxcursor",
+  "libxfixes",
+  "libxcomposite",
+  "pango",
+  "libxrandr",
+  "libxdamage",
+  "libxkbcommon",
+  "at-spi2-atk",
+  "libatk-bridge-2_0-0",
+  "mesa",
+  "libepoxy",
+  "libdrm",
+  "nss",
+  "alsa-lib"
+]
