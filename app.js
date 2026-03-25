@@ -20,6 +20,7 @@ if (!fs.existsSync(reportsDir)) {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 
 // ミドルウェア
 app.use(cors());
@@ -463,9 +464,24 @@ function calculateScores(performance, seo, mobile, a11yViolations, b2bScore) {
     overall: Math.max(1, perfScore) + Math.max(1, seoScore) + mobileScore + a11yScore + (b2bScore || 3)
   };
 }
-// サーバー起動は下記のみで十分です
-        
-app.listen(PORT, () => {
-  console.log(`🚀 Web分析サーバーが起動しました: http://localhost:${PORT}`);
+const server = app.listen(PORT, HOST, () => {
+  console.log(`🚀 Web分析サーバーが起動しました: http://${HOST}:${PORT}`);
   console.log(`🔑 OpenAI API: ${openai ? '設定済み' : '未設定（基本分析のみ）'}`);
+  console.log(`❤️ Health check: http://${HOST}:${PORT}/api/status/health`);
 });
+
+function shutdown(signal) {
+  console.log(`🛑 ${signal} を受信したため、サーバーを終了します`);
+  server.close(() => {
+    console.log('✅ HTTPサーバーを停止しました');
+    process.exit(0);
+  });
+
+  setTimeout(() => {
+    console.error('⚠️ サーバー停止がタイムアウトしたため、強制終了します');
+    process.exit(1);
+  }, 10000).unref();
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
