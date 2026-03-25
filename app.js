@@ -334,6 +334,9 @@ async function analyzePerformance(page) {
 }
 
 function analyzeSEO(html) {
+  const totalImages = (html.match(/<img[^>]*>/gi) || []).length;
+  const imagesWithAlt = (html.match(/<img[^>]*alt=["'][^"']*["'][^>]*>/gi) || []).length;
+
   return {
     title: /<title>(.*?)<\/title>/i.exec(html)?.[1] || null,
     metaDescription: /<meta\s+name="description"\s+content="(.*?)"/i.exec(html)?.[1] || null,
@@ -343,17 +346,56 @@ function analyzeSEO(html) {
       h3: (html.match(/<h3[^>]*>.*?<\/h3>/gi) || []).length
     },
     images: {
-      total: (html.match(/<img[^>]*>/gi) || []).length,
-      withAlt: (html.match(/<img[^>]*alt=["'][^"']*["'][^>]*>/gi) || []).length
+      total: totalImages,
+      withAlt: imagesWithAlt,
+      withoutAlt: Math.max(0, totalImages - imagesWithAlt)
     }
   };
 }
 
 async function analyzeMobile(page) {
   try {
-    const viewport = await page.evaluate(() => {
+    const mobileSignals = await page.evaluate(() => {
       const viewportMeta = document.querySelector('meta[name="viewport"]');
-      return viewportMeta ? viewportMeta.getAttribute('content') : null;
+      const hasViewport = !!viewportMeta;
+      const viewportContent = viewportMeta ? viewportMeta.getAttribute('content') : null;
+      const mediaQueryMatches = [];
+
+      const inspectRules = rules => {
+        for (const rule of Array.from(rules || [])) {
+          if (rule instanceof CSSMediaRule) {
+            mediaQueryMatches.push(rule.conditionText);
+          }
+          if (rule.cssRules) {
+            inspectRules(rule.cssRules);
+          }
+        }
+      };
+
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          inspectRules(sheet.cssRules);
+        } catch {
+          // Cross-origin stylesheet rules can be inaccessible in the browser context.
+        }
+      }
+
+      const responsiveIndicators = new Set();
+      mediaQueryMatches.forEach(query => responsiveIndicators.add(query));
+
+      document.querySelectorAll('[class]').forEach(element => {
+        const className = element.className;
+        if (typeof className === 'string' && /(sm:|md:|lg:|xl:|grid-cols-|col-span-|hidden\s|flex\s)/.test(className)) {
+          responsiveIndicators.add(`class:${className}`);
+        }
+      });
+
+      return {
+        viewport: viewportContent,
+        hasViewport,
+        mediaQueryCount: mediaQueryMatches.length,
+        hasMediaQueries: mediaQueryMatches.length > 0 || responsiveIndicators.size > 0
+      };
     });
 
     let touchTargets;
@@ -402,8 +444,12 @@ async function analyzeMobile(page) {
     }
 
     const result = {
-      viewport,
-      responsive: { hasMediaQueries: true }, // 簡略化
+      viewport: mobileSignals.viewport,
+      responsive: {
+        hasViewport: mobileSignals.hasViewport,
+        hasMediaQueries: mobileSignals.hasMediaQueries,
+        mediaQueryCount: mobileSignals.mediaQueryCount
+      },
       touchTargets
     };
 
@@ -414,7 +460,11 @@ async function analyzeMobile(page) {
     console.error('Mobile analysis error:', error.message);
     return {
       viewport: null,
-      responsive: { hasMediaQueries: false },
+      responsive: {
+        hasViewport: false,
+        hasMediaQueries: false,
+        mediaQueryCount: 0
+      },
       touchTargets: {
         totalTargets: 0,
         adequateTargets: 0,
@@ -425,43 +475,102 @@ async function analyzeMobile(page) {
 }
 
 async function analyzeB2BWithAI(page) {
-  if (!openai) {
-    return { score: 3, message: 'OpenAI APIキーが設定されていません' };
-  }
-
   try {
-    const content = await page.evaluate(() => document.body.innerText);
-    const hasContact = content.includes('お問い合わせ') || content.includes('問い合わせ');
-    const hasCompany = content.includes('会社概要') || content.includes('企業情報');
+    const signals = await page.evaluate(() => {
+      const bodyText = document.body?.innerText || '';
+      const links = Array.from(document.querySelectorAll('a[href]'))
+        .map(anchor => ({
+          text: (anchor.textContent || '').trim(),
+          href: anchor.getAttribute('href') || ''
+        }));
+      const forms = Array.from(document.querySelectorAll('form'));
+      const ctaTexts = ['お問い合わせ', '問い合わせ', '資料請求', '無料相談', '無料デモ', 'お申し込み', '導入事例', '詳しく見る', 'お問い合わせはこちら'];
+      const hasMatchingLink = patterns => links.some(link => patterns.some(pattern => link.text.includes(pattern) || link.href.includes(pattern)));
+      const ctaCount = links.filter(link => ctaTexts.some(pattern => link.text.includes(pattern))).length;
 
-    let score = 2;
-    if (hasContact) score++;
-    if (hasCompany) score++;
+      return {
+        formCount: forms.length,
+        ctaCount,
+        hasContactPage: hasMatchingLink(['contact', 'inquiry', 'toiawase', 'お問い合わせ', '問い合わせ']),
+        hasCaseStudies: hasMatchingLink(['case', 'works', '導入事例', '事例', '実績']),
+        hasPricingPage: hasMatchingLink(['price', 'pricing', '料金', '費用']),
+        hasResourceDownloads: hasMatchingLink(['download', 'whitepaper', '資料', 'ebook']),
+        hasCompanyInfo: hasMatchingLink(['company', 'about', '会社概要', '企業情報']),
+        hasFAQ: hasMatchingLink(['faq', 'よくある質問']),
+        hasPrivacyPolicy: hasMatchingLink(['privacy', 'プライバシー']),
+        hasNewsSection: hasMatchingLink(['news', 'blog', 'お知らせ', 'ニュース']),
+        bodyText
+      };
+    });
 
-    return { score: Math.min(score, 5) };
+    const heuristicSignals = [
+      signals.hasContactPage,
+      signals.hasCaseStudies,
+      signals.hasPricingPage,
+      signals.hasResourceDownloads,
+      signals.hasCompanyInfo,
+      signals.hasFAQ,
+      signals.hasPrivacyPolicy,
+      signals.hasNewsSection,
+      signals.formCount > 0,
+      signals.ctaCount >= 2
+    ];
+
+    let score = 1 + heuristicSignals.filter(Boolean).length / 2;
+    if (signals.formCount >= 2) score += 0.5;
+    if ((signals.bodyText.match(/導入|事例|顧客|企業/g) || []).length >= 3) score += 0.5;
+
+    return {
+      ...signals,
+      score: Math.max(1, Math.min(5, Math.round(score)))
+    };
   } catch (error) {
-    return { score: 3, error: error.message };
+    return {
+      score: 2,
+      formCount: 0,
+      ctaCount: 0,
+      hasContactPage: false,
+      hasCaseStudies: false,
+      hasPricingPage: false,
+      hasResourceDownloads: false,
+      hasCompanyInfo: false,
+      hasFAQ: false,
+      hasPrivacyPolicy: false,
+      hasNewsSection: false,
+      error: error.message
+    };
   }
 }
 
 function calculateScores(performance, seo, mobile, a11yViolations, b2bScore) {
   let perfScore = 5;
-  if (performance.loadTime > 3000) perfScore--;
+  if (performance.loadTime > 5000) perfScore = 2;
+  else if (performance.loadTime > 3000) perfScore = 3;
+  else if (performance.loadTime > 2000) perfScore = 4;
 
   let seoScore = 5;
   if (!seo.title) seoScore--;
   if (!seo.metaDescription) seoScore--;
+  if (seo.headings.h1 === 0) seoScore--;
+  if (seo.images.total > 0 && seo.images.withoutAlt > 0) seoScore--;
 
-  let mobileScore = mobile.viewport ? 5 : 3;
+  let mobileScore = 5;
+  if (!mobile.responsive?.hasViewport) mobileScore -= 2;
+  if (!mobile.responsive?.hasMediaQueries) mobileScore -= 1;
+  if ((mobile.touchTargets?.totalTargets || 0) > 0) {
+    const adequateRatio = (mobile.touchTargets.adequateTargets || 0) / mobile.touchTargets.totalTargets;
+    if (adequateRatio < 0.6) mobileScore -= 1;
+  }
+
   let a11yScore = Math.max(1, 5 - Math.floor(a11yViolations / 2));
 
   return {
     performance: Math.max(1, perfScore),
     seo: Math.max(1, seoScore),
-    mobile: mobileScore,
+    mobile: Math.max(1, mobileScore),
     accessibility: a11yScore,
     b2bLead: b2bScore || 3,
-    overall: Math.max(1, perfScore) + Math.max(1, seoScore) + mobileScore + a11yScore + (b2bScore || 3)
+    overall: Math.max(1, perfScore) + Math.max(1, seoScore) + Math.max(1, mobileScore) + a11yScore + (b2bScore || 3)
   };
 }
 const server = app.listen(PORT, HOST, () => {
