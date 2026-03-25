@@ -9,7 +9,7 @@
     "dev": "node --watch app.js",
     "analyze": "node src/analyze-all.js",
     "build": "mkdir -p dist && cp -r public/* dist/ && cp app.js dist/",
-    "postinstall": "npx playwright install chromium"
+    "postinstall": "node -e \"process.exit(process.env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD === '1' ? 0 : 1)\" || npx playwright install chromium"
   },
   "dependencies": {
     "express": "^4.18.2",
