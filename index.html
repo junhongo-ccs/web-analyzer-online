@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web分析システム | オンライン版PoC</title>
     <style>
+        :root {
+            --apple-text: #1d1d1f;
+            --apple-subtext: #6e6e73;
+            --apple-bg: #f5f5f7;
+            --apple-card: #ffffff;
+            --apple-border: #d2d2d7;
+            --apple-blue: #0071e3;
+            --apple-blue-hover: #0077ed;
+            --apple-success: #248a3d;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -13,9 +24,9 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(180deg, #fbfbfd 0%, var(--apple-bg) 100%);
             min-height: 100vh;
-            color: #333;
+            color: var(--apple-text);
         }
         
         .container {
@@ -26,7 +37,7 @@
         
         .header {
             text-align: center;
-            color: white;
+            color: var(--apple-text);
             margin-bottom: 3rem;
         }
         
@@ -37,14 +48,15 @@
         
         .header p {
             font-size: 1.1rem;
-            opacity: 0.9;
+            color: var(--apple-subtext);
         }
         
         .main-card {
-            background: white;
+            background: var(--apple-card);
             border-radius: 16px;
             padding: 2rem;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+            border: 1px solid var(--apple-border);
             margin-bottom: 2rem;
         }
         
@@ -56,7 +68,7 @@
             display: block;
             font-weight: 600;
             margin-bottom: 0.5rem;
-            color: #374151;
+            color: var(--apple-text);
         }
         
         .url-input {
@@ -72,11 +84,11 @@
         
         .url-input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--apple-blue);
         }
         
         .analyze-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--apple-blue);
             color: white;
             border: none;
             padding: 1rem 2rem;
@@ -89,6 +101,7 @@
         }
         
         .analyze-btn:hover:not(:disabled) {
+            background: var(--apple-blue-hover);
             transform: translateY(-2px);
         }
         
@@ -121,7 +134,7 @@
         
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #667eea, #764ba2);
+            background: linear-gradient(90deg, #006edb, #2997ff);
             width: 0%;
             transition: width 0.3s;
         }
@@ -133,11 +146,11 @@
         }
         
         .result-card {
-            background: white;
+            background: var(--apple-card);
             border-radius: 12px;
             padding: 1.5rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            border-left: 4px solid #667eea;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            border-left: 4px solid var(--apple-blue);
         }
         
         .result-url {
@@ -164,12 +177,12 @@
         .score-value {
             font-size: 1.5rem;
             font-weight: bold;
-            color: #667eea;
+            color: var(--apple-blue);
         }
         
         .score-label {
             font-size: 0.85rem;
-            color: #6b7280;
+            color: var(--apple-subtext);
             margin-top: 0.25rem;
         }
         
@@ -186,7 +199,7 @@
             width: 1rem;
             height: 1rem;
             border: 2px solid #f3f3f3;
-            border-top: 2px solid #667eea;
+            border-top: 2px solid var(--apple-blue);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -197,7 +210,7 @@
         }
         
         .api-status {
-            background: #f0f9ff;
+            background: #f5f9ff;
             border: 1px solid #bae6fd;
             border-radius: 8px;
             padding: 1rem;
@@ -215,12 +228,40 @@
             border-color: #bbf7d0;
             color: #166534;
         }
+
+        .sf-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            margin-right: 0.35em;
+            vertical-align: -0.15em;
+            flex-shrink: 0;
+        }
+
+        .sf-icon--md { width: 16px; height: 16px; }
+        .sf-icon--lg { width: 20px; height: 20px; }
+        .sf-icon--xl { width: 24px; height: 24px; }
+
+        .sf-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: brightness(0) saturate(100%);
+        }
+
+        .icon-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.1em;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header class="header">
-            <h1>🔍 Web分析システム</h1>
+            <h1><span class="icon-label"><span data-sf-icon="magnifyingglass" data-sf-size="xl"></span>Web分析システム</span></h1>
             <p>日本語サイト専用・5項目評価・AI分析対応</p>
         </header>
         
@@ -240,7 +281,7 @@
                 </div>
                 
                 <button type="submit" id="analyze-btn" class="analyze-btn">
-                    📊 分析開始
+                    <span class="icon-label"><span data-sf-icon="chart.bar" data-sf-size="lg"></span>分析開始</span>
                 </button>
             </form>
             
@@ -257,82 +298,76 @@
     </div>
 
     <script>
+        const ICON_BASE = '/icons/sf';
         let currentSessionId = null;
         let statusInterval = null;
-        
-        // API状況チェック
+
+        function icon(symbolName, size = 'md', label = '') {
+            return `<span class="sf-icon sf-icon--${size}" aria-hidden="true"><img src="${ICON_BASE}/${symbolName}.svg" alt="${label}"></span>`;
+        }
+
+        function decorateStaticIcons() {
+            document.querySelectorAll('[data-sf-icon]').forEach((el) => {
+                el.innerHTML = icon(el.dataset.sfIcon, el.dataset.sfSize || 'md');
+            });
+        }
+
         checkApiStatus();
-        
+        decorateStaticIcons();
+
         async function checkApiStatus() {
+            const statusEl = document.getElementById('api-status');
             try {
                 const response = await fetch('/api/status/health');
-                const statusEl = document.getElementById('api-status');
-                
                 if (response.ok) {
                     statusEl.className = 'api-status success';
-                    statusEl.innerHTML = '✅ サーバー正常稼働中（AI分析: 利用可能）';
+                    statusEl.innerHTML = `${icon('checkmark.circle.fill', 'md')}サーバー正常稼働中（AI分析: 利用可能）`;
                 } else {
                     statusEl.className = 'api-status warning';
-                    statusEl.innerHTML = '⚠️ サーバー稼働中（AI分析: 制限あり）';
+                    statusEl.innerHTML = `${icon('exclamationmark.triangle.fill', 'md')}サーバー稼働中（AI分析: 制限あり）`;
                 }
             } catch (error) {
-                const statusEl = document.getElementById('api-status');
                 statusEl.className = 'api-status warning';
-                statusEl.innerHTML = '⚠️ サーバー接続中...（基本分析のみ利用可能）';
+                statusEl.innerHTML = `${icon('wifi.exclamationmark', 'md')}サーバー接続中...（基本分析のみ利用可能）`;
             }
         }
-        
-        // フォーム送信
+
         document.getElementById('analysis-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const urlsText = document.getElementById('urls').value.trim();
             if (!urlsText) return;
-            
-            const urls = urlsText.split('\n').map(url => url.trim()).filter(url => url);
+            const urls = urlsText.split('\n').map((url) => url.trim()).filter(Boolean);
             if (urls.length === 0) return;
-            
-            // UI更新
+
             const btn = document.getElementById('analyze-btn');
             const statusCard = document.getElementById('status-card');
-            
             btn.disabled = true;
             btn.innerHTML = '<span class="loading"></span> 分析中...';
             statusCard.classList.add('show');
-            
+
             try {
                 const response = await fetch('/api/analyze', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ urls })
                 });
-                
                 const data = await response.json();
-                
-                if (response.ok) {
-                    currentSessionId = data.sessionId;
-                    startStatusCheck();
-                } else {
-                    throw new Error(data.error || '分析開始に失敗しました');
-                }
-                
+                if (!response.ok) throw new Error(data.error || '分析開始に失敗しました');
+                currentSessionId = data.sessionId;
+                startStatusCheck();
             } catch (error) {
-                alert('エラー: ' + error.message);
+                alert(`エラー: ${error.message}`);
                 resetUI();
             }
         });
-        
-        // 状況チェック開始
+
         function startStatusCheck() {
             if (statusInterval) clearInterval(statusInterval);
-            
             statusInterval = setInterval(async () => {
                 try {
                     const response = await fetch(`/api/status/${currentSessionId}`);
                     const status = await response.json();
-                    
                     updateProgress(status);
-                    
                     if (status.status === 'completed' || status.status === 'error') {
                         clearInterval(statusInterval);
                         displayResults(status);
@@ -343,207 +378,91 @@
                 }
             }, 1000);
         }
-        
-        // プログレス更新
+
         function updateProgress(status) {
             const progressFill = document.getElementById('progress-fill');
             const statusText = document.getElementById('status-text');
-            
             const progress = (status.progress / status.total) * 100;
-            progressFill.style.width = progress + '%';
-            
+            progressFill.style.width = `${progress}%`;
             if (status.currentUrl) {
                 statusText.textContent = `${status.progress + 1}/${status.total}: ${status.currentUrl}`;
             }
         }
-        
- // 結果表示関数を修正
-// 結果カード作成関数を修正
-function createResultCard(result, index) {
-    const div = document.createElement('div');
-    div.className = 'result-card';
-    
-    if (result.error) {
-        div.innerHTML = `
-            <div class="result-url">🌐 ${result.url}</div>
-            <div class="error-card">
-                <p>❌ 分析エラー: ${result.error}</p>
-            </div>
-        `;
-        return div;
-    }
-    
-    const scores = result.scores;
-    
-    div.innerHTML = `
-        <div class="result-url">🌐 ${result.url}</div>
-        
-        <div class="scores-grid">
-            <div class="score-item">
-                <div class="score-value">${scores.performance}/5</div>
-                <div class="score-label">🚀 パフォーマンス</div>
-            </div>
-            <div class="score-item">
-                <div class="score-value">${scores.seo}/5</div>
-                <div class="score-label">🔍 SEO</div>
-            </div>
-            <div class="score-item">
-                <div class="score-value">${scores.mobile}/5</div>
-                <div class="score-label">📱 モバイル</div>
-            </div>
-            <div class="score-item">
-                <div class="score-value">${scores.accessibility}/5</div>
-                <div class="score-label">♿ アクセシビリティ</div>
-            </div>
-            <div class="score-item">
-                <div class="score-value">${scores.b2bLead}/5</div>
-                <div class="score-label">🏢 B2B</div>
-            </div>
-            <div class="score-item" style="grid-column: span 2;">
-                <div class="score-value" style="color: #059669;">${scores.overall}/25</div>
-                <div class="score-label">📊 総合スコア</div>
-            </div>
-        </div>
-        
-        ${result.reportFile ? `
-            <div style="margin-top: 1rem; padding: 1rem; background: #f0f9ff; border-radius: 8px; text-align: center;">
-                <a href="${result.reportFile}" target="_blank" style="
-                    display: inline-block;
-                    padding: 0.75rem 1.5rem;
-                    background: linear-gradient(135deg, #667eea, #764ba2);
-                    color: white;
-                    text-decoration: none;
-                    border-radius: 6px;
-                    font-weight: 600;
-                    margin: 0.25rem;
-                ">📄 詳細レポートを表示</a>
-                
-                <a href="${result.reportFile}" download style="
-                    display: inline-block;
-                    padding: 0.75rem 1.5rem;
-                    background: #e5e7eb;
-                    color: #374151;
-                    text-decoration: none;
-                    border-radius: 6px;
-                    font-weight: 600;
-                    margin: 0.25rem;
-                ">⬇️ ダウンロード</a>
-            </div>
-        ` : ''}
-        
-        ${result.suggestions ? `
-            <details style="margin-top: 1rem;">
-                <summary style="cursor: pointer; font-weight: 600; color: #4f46e5;">
-                    🤖 AI改善提案を表示
-                </summary>
-                <div style="margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px; white-space: pre-wrap;">${result.suggestions}</div>
-            </details>
-        ` : ''}
-    `;
-    
-    return div;
-}
 
-// 結果表示関数も修正して、分析完了時にレポート一覧へのリンクを追加
-function displayResults(status) {
-    const resultsDiv = document.getElementById('results');
-    resultsDiv.innerHTML = '';
-    
-    if (status.status === 'error') {
-        resultsDiv.innerHTML = `
-            <div class="error-card">
-                <h3>❌ 分析エラー</h3>
-                <p>${status.error}</p>
-            </div>
-        `;
-        return;
-    }
-    
-    // 分析完了メッセージを表示
-    resultsDiv.innerHTML = `
-        <div style="
-            text-align: center; 
-            margin-bottom: 2rem; 
-            padding: 1.5rem; 
-            background: linear-gradient(135deg, #f0f9ff, #e0f2fe); 
-            border-radius: 12px;
-        ">
-            <h2 style="color: #1e40af;">✅ 分析完了！</h2>
-        </div>
-    `;
-    
-    status.results.forEach((result, index) => {
-        const resultCard = createResultCard(result, index + 1);
-        resultsDiv.appendChild(resultCard);
-    });
-}    
-        // 結果カード作成
-        function createResultCard(result, index) {
+        function createResultCard(result) {
             const div = document.createElement('div');
             div.className = 'result-card';
-            
             if (result.error) {
                 div.innerHTML = `
-                    <div class="result-url">🌐 ${result.url}</div>
+                    <div class="result-url">${icon('globe', 'md')} ${result.url}</div>
                     <div class="error-card">
-                        <p>❌ 分析エラー: ${result.error}</p>
+                        <p>${icon('xmark.octagon.fill', 'md')}分析エラー: ${result.error}</p>
                     </div>
                 `;
                 return div;
             }
-            
+
             const scores = result.scores;
-            
             div.innerHTML = `
-                <div class="result-url">🌐 ${result.url}</div>
-                
+                <div class="result-url">${icon('globe', 'md')} ${result.url}</div>
                 <div class="scores-grid">
-                    <div class="score-item">
-                        <div class="score-value">${scores.performance}/5</div>
-                        <div class="score-label">🚀 パフォーマンス</div>
-                    </div>
-                    <div class="score-item">
-                        <div class="score-value">${scores.seo}/5</div>
-                        <div class="score-label">🔍 SEO</div>
-                    </div>
-                    <div class="score-item">
-                        <div class="score-value">${scores.mobile}/5</div>
-                        <div class="score-label">📱 モバイル</div>
-                    </div>
-                    <div class="score-item">
-                        <div class="score-value">${scores.accessibility}/5</div>
-                        <div class="score-label">♿ アクセシビリティ</div>
-                    </div>
-                    <div class="score-item">
-                        <div class="score-value">${scores.b2bLead}/5</div>
-                        <div class="score-label">🏢 B2B</div>
-                    </div>
-                    <div class="score-item" style="grid-column: span 2;">
-                        <div class="score-value" style="color: #059669;">${scores.overall}/25</div>
-                        <div class="score-label">📊 総合スコア</div>
-                    </div>
+                    <div class="score-item"><div class="score-value">${scores.performance}/5</div><div class="score-label">${icon('speedometer', 'md')}パフォーマンス</div></div>
+                    <div class="score-item"><div class="score-value">${scores.seo}/5</div><div class="score-label">${icon('magnifyingglass', 'md')}SEO</div></div>
+                    <div class="score-item"><div class="score-value">${scores.mobile}/5</div><div class="score-label">${icon('iphone', 'md')}モバイル</div></div>
+                    <div class="score-item"><div class="score-value">${scores.accessibility}/5</div><div class="score-label">${icon('accessibility', 'md')}アクセシビリティ</div></div>
+                    <div class="score-item"><div class="score-value">${scores.b2bLead}/5</div><div class="score-label">${icon('building.2', 'md')}B2B</div></div>
+                    <div class="score-item" style="grid-column: span 2;"><div class="score-value" style="color: var(--apple-success);">${scores.overall}/25</div><div class="score-label">${icon('chart.bar.fill', 'md')}総合スコア</div></div>
                 </div>
-                
+                ${result.reportFile ? `
+                    <div style="margin-top: 1rem; padding: 1rem; background: #f5f9ff; border-radius: 8px; text-align: center;">
+                        <a href="${result.reportFile}" target="_blank" style="display: inline-block; padding: 0.75rem 1.5rem; background: var(--apple-blue); color: white; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 0.25rem;">
+                            ${icon('doc.text.magnifyingglass', 'md')}詳細レポートを表示
+                        </a>
+                        <a href="${result.reportFile}" download style="display: inline-block; padding: 0.75rem 1.5rem; background: #e5e7eb; color: #374151; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 0.25rem;">
+                            ${icon('arrow.down.circle', 'md')}ダウンロード
+                        </a>
+                    </div>
+                ` : ''}
                 ${result.suggestions ? `
                     <details style="margin-top: 1rem;">
-                        <summary style="cursor: pointer; font-weight: 600; color: #4f46e5;">
-                            🤖 AI改善提案を表示
+                        <summary style="cursor: pointer; font-weight: 600; color: var(--apple-blue);">
+                            ${icon('sparkles', 'md')}AI改善提案を表示
                         </summary>
                         <div style="margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px; white-space: pre-wrap;">${result.suggestions}</div>
                     </details>
                 ` : ''}
             `;
-            
             return div;
         }
-        
-        // UI リセット
+
+        function displayResults(status) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+            if (status.status === 'error') {
+                resultsDiv.innerHTML = `
+                    <div class="error-card">
+                        <h3>${icon('xmark.octagon.fill', 'lg')}分析エラー</h3>
+                        <p>${status.error}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            resultsDiv.innerHTML = `
+                <div style="text-align: center; margin-bottom: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #f5f9ff, #edf5ff); border-radius: 12px;">
+                    <h2 style="color: var(--apple-blue);">${icon('checkmark.circle.fill', 'lg')}分析完了！</h2>
+                </div>
+            `;
+            status.results.forEach((result) => {
+                resultsDiv.appendChild(createResultCard(result));
+            });
+        }
+
         function resetUI() {
             const btn = document.getElementById('analyze-btn');
             const statusCard = document.getElementById('status-card');
-            
             btn.disabled = false;
-            btn.innerHTML = '📊 分析開始';
+            btn.innerHTML = `<span class="icon-label">${icon('chart.bar', 'lg')}分析開始</span>`;
             statusCard.classList.remove('show');
         }
     </script>
